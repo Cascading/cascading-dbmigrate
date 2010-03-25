@@ -3,7 +3,7 @@ cascading-dbmigrate makes it easy to run Cascading flows on sql tables with a pr
 
 Usage:
 
-To read data form a database in a Cascading flow, use DBMigrateTap. DBMigrateTap's constructor has the following signature:
+To read data from a database in a Cascading flow, use DBMigrateTap. DBMigrateTap's constructor has the following signature:
 
 DBMigrateTap(int numChunks, String dbDriver, String dbUrl, String username, String pwd, String tableName, String pkColumn, String[] columnNames)
 
@@ -30,4 +30,6 @@ To build cascading-dbmigrate, follow these instructions:
 
 This will produce a single jar called cascading_dbmigrate.jar in the build/ directory.
 
+
+Thanks to Chris Wensel for his help in developing this project.
 
