@@ -22,6 +22,8 @@ import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
+import org.apache.hadoop.io.BytesWritable;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -123,7 +125,11 @@ public class DBInputFormat implements InputFormat<LongWritable, TupleWrapper> {
                 value.tuple = new Tuple();
 
                 for (int i = 0; i < results.getMetaData().getColumnCount(); i++) {
-                    value.tuple.add((Comparable) results.getObject(i + 1));
+                    Object o = results.getObject(i+1);
+                    if(o instanceof byte[]) {
+                        o = new BytesWritable((byte[]) o);
+                    }
+                    value.tuple.add((Comparable) o);
                 }
                 pos++;
             } catch (SQLException exception) {
