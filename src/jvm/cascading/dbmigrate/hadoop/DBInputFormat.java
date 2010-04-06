@@ -179,7 +179,8 @@ public class DBInputFormat implements InputFormat<LongWritable, TupleWrapper> {
         return new DBRecordReader((DBInputSplit) split, job);
     }
 
-    private long getMaxId(Connection conn, String tableName, String col) {
+    private long getMaxId(DBConfiguration conf, Connection conn, String tableName, String col) {
+        if(conf.getMaxId()!=null) return conf.getMaxId();
         try {
             PreparedStatement s = conn.prepareStatement("SELECT MAX(" + col + ") FROM " + tableName);
             ResultSet rs = s.executeQuery();
@@ -193,7 +194,8 @@ public class DBInputFormat implements InputFormat<LongWritable, TupleWrapper> {
         }
     }
 
-    private long getMinId(Connection conn, String tableName, String col ) {
+    private long getMinId(DBConfiguration conf, Connection conn, String tableName, String col ) {
+        if(conf.getMinId()!=null) return conf.getMinId();
         try {
             PreparedStatement s = conn.prepareStatement("SELECT MIN(" + col + ") FROM " + tableName);
             ResultSet rs = s.executeQuery();
@@ -213,8 +215,8 @@ public class DBInputFormat implements InputFormat<LongWritable, TupleWrapper> {
             int chunks = conf.getNumChunks();
             Connection conn = conf.getConnection();
             String primarykeycolumn = conf.getPrimaryKeyColumn();
-            long maxId = getMaxId(conn, conf.getInputTableName(), conf.getPrimaryKeyColumn());
-            long minId = getMinId(conn, conf.getInputTableName(), conf.getPrimaryKeyColumn());
+            long maxId = getMaxId(conf, conn, conf.getInputTableName(), conf.getPrimaryKeyColumn());
+            long minId = getMinId(conf, conn, conf.getInputTableName(), conf.getPrimaryKeyColumn());
             long chunkSize = ((maxId-minId+1) / chunks);
             InputSplit[] ret = new InputSplit[chunks];
 
@@ -232,12 +234,13 @@ public class DBInputFormat implements InputFormat<LongWritable, TupleWrapper> {
         }
     }
 
-    public static void setInput(JobConf job, int numChunks, String databaseDriver, String username, String pwd, String dburl, String tableName, String pkColumn, String... columnNames) {
+    public static void setInput(JobConf job, int numChunks, String databaseDriver, String username, String pwd, String dburl, String tableName, String pkColumn, Long minId, Long maxId, String... columnNames) {
         job.setInputFormat(DBInputFormat.class);
 
         DBConfiguration dbConf = new DBConfiguration(job);
         dbConf.configureDB(databaseDriver, dburl, username, pwd);
-
+        if(minId!=null) dbConf.setMinId(minId.longValue());
+        if(maxId!=null) dbConf.setMinId(maxId.longValue());
         dbConf.setInputTableName(tableName);
         dbConf.setInputColumnNames(columnNames);
         dbConf.setPrimaryKeyColumn(pkColumn);

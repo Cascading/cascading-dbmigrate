@@ -23,6 +23,11 @@ import org.apache.hadoop.mapred.OutputCollector;
 
 
 public class DBMigrateTap extends Tap {
+    public static class Options {
+        public Long minId = null;
+        public Long maxId = null;
+    }
+    
     public class DBMigrateScheme extends Scheme {
         String dbDriver;
         String dbUrl;
@@ -32,8 +37,9 @@ public class DBMigrateTap extends Tap {
         String pkColumn;
         String[] columnNames;
         int numChunks;
+        Options options;
 
-        public DBMigrateScheme(int numChunks, String dbDriver, String dbUrl, String username, String pwd, String tableName, String pkColumn, String[] columnNames) {
+        public DBMigrateScheme(int numChunks, String dbDriver, String dbUrl, String username, String pwd, String tableName, String pkColumn, String[] columnNames, Options options) {
             super(new Fields(columnNames));
             this.dbDriver = dbDriver;
             this.dbUrl = dbUrl;
@@ -43,6 +49,7 @@ public class DBMigrateTap extends Tap {
             this.pkColumn = pkColumn;
             this.columnNames = columnNames;
             this.numChunks = numChunks;
+            this.options = options;
         }
 
         @Override
@@ -50,7 +57,7 @@ public class DBMigrateTap extends Tap {
             // a hack for MultiInputFormat to see that there is a child format
             FileInputFormat.setInputPaths( jc, getPath() );
             
-            DBInputFormat.setInput(jc, numChunks, dbDriver, username, pwd, dbUrl, tableName, pkColumn, columnNames);
+            DBInputFormat.setInput(jc, numChunks, dbDriver, username, pwd, dbUrl, tableName, pkColumn, options.minId, options.maxId, columnNames);
         }
 
         @Override
@@ -72,7 +79,11 @@ public class DBMigrateTap extends Tap {
     String connectionUrl;
 
     public DBMigrateTap(int numChunks, String dbDriver, String dbUrl, String username, String pwd, String tableName, String pkColumn, String[] columnNames) {
-        setScheme(new DBMigrateScheme(numChunks, dbDriver, dbUrl, username, pwd, tableName, pkColumn, columnNames));
+        this(numChunks, dbDriver, dbUrl, username, pwd, tableName, pkColumn, columnNames, new Options());
+    }
+
+    public DBMigrateTap(int numChunks, String dbDriver, String dbUrl, String username, String pwd, String tableName, String pkColumn, String[] columnNames, Options options) {
+        setScheme(new DBMigrateScheme(numChunks, dbDriver, dbUrl, username, pwd, tableName, pkColumn, columnNames, options));
         this.connectionUrl = dbUrl;
     }
 

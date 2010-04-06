@@ -23,6 +23,8 @@ public class DBConfiguration {
     public static final String INPUT_COLUMN_NAMES_PROPERTY = "mapred.jdbc.input.column.names";
     public static final String PRIMARY_KEY_COLUMN = "mapred.jdbc.primary.key.name";
     public static final String NUM_CHUNKS = "mapred.jdbc.num.chunks";
+    public static final String MIN_ID = "dbmigrate.min.id";
+    public static final String MAX_ID = "dbmigrate.max.id";
 
     public void configureDB(String driverClass, String dbUrl, String userName, String passwd) {
         job.set(DRIVER_CLASS_PROPERTY, driverClass);
@@ -97,6 +99,24 @@ public class DBConfiguration {
 
     public int getNumChunks() {
         return job.getInt(NUM_CHUNKS, 10);
+    }
+    
+    public void setMinId(long id) {
+        job.setLong(MIN_ID, id);
+    }
+    
+    public Long getMinId() {
+        if(job.get(MIN_ID)==null) return null;
+        return job.getLong(MIN_ID, -1);
+    }
+    
+    public void setMaxId(long id) {
+        job.setLong(MAX_ID, id);
+    }
+    
+    public Long getMaxId() {
+        if(job.get(MAX_ID)==null) return null;
+        return job.getLong(MAX_ID, -1);
     }
 }
 
