@@ -49,6 +49,7 @@ public class DBInputFormat implements InputFormat<LongWritable, TupleWrapper> {
 
                 //statement.setFetchSize(Integer.MIN_VALUE);
                 String query = getSelectQuery(conf, split);
+                LOG.info("Running query: " + query);
                 try {
                     results = statement.executeQuery(query);
                 } catch (SQLException exception) {
@@ -217,7 +218,8 @@ public class DBInputFormat implements InputFormat<LongWritable, TupleWrapper> {
             String primarykeycolumn = conf.getPrimaryKeyColumn();
             long maxId = getMaxId(conf, conn, conf.getInputTableName(), conf.getPrimaryKeyColumn());
             long minId = getMinId(conf, conn, conf.getInputTableName(), conf.getPrimaryKeyColumn());
-            long chunkSize = ((maxId-minId+1) / chunks);
+            long chunkSize = ((maxId-minId+1) / chunks) + 1;
+            chunks = ((int) ((maxId-minId+1) / chunkSize)) + 1;
             InputSplit[] ret = new InputSplit[chunks];
 
             long currId = minId;
@@ -240,7 +242,7 @@ public class DBInputFormat implements InputFormat<LongWritable, TupleWrapper> {
         DBConfiguration dbConf = new DBConfiguration(job);
         dbConf.configureDB(databaseDriver, dburl, username, pwd);
         if(minId!=null) dbConf.setMinId(minId.longValue());
-        if(maxId!=null) dbConf.setMinId(maxId.longValue());
+        if(maxId!=null) dbConf.setMaxId(maxId.longValue());
         dbConf.setInputTableName(tableName);
         dbConf.setInputColumnNames(columnNames);
         dbConf.setPrimaryKeyColumn(pkColumn);

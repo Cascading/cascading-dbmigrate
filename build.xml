@@ -6,7 +6,7 @@ Licensed under the Apache License, Version 2.0 (the "License"); you may not use 
 <project name="cascading_dbmigrate" default="jar">
   <property name="src.dir"  location="${basedir}/src/jvm"/>
   <property name="final.name" value="cascading_dbmigrate"/>
-  <property name="javac.deprecation" value="true"/>
+  <property name="javac.deprecation" value="false"/>
   
   <property name="build.dir" location="${basedir}/build"/>
   <property name="build.classes" location="${build.dir}/classes"/>
