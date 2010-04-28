@@ -20,10 +20,11 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.FileInputFormat;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputCollector;
+import java.io.Serializable;
 
 
 public class DBMigrateTap extends Tap {
-    public static class Options {
+    public static class Options implements Serializable {
         public Long minId = null;
         public Long maxId = null;
     }
