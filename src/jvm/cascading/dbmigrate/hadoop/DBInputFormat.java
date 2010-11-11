@@ -23,6 +23,7 @@ import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
 import org.apache.hadoop.io.BytesWritable;
+import java.math.BigInteger;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -129,8 +130,15 @@ public class DBInputFormat implements InputFormat<LongWritable, TupleWrapper> {
                     Object o = results.getObject(i+1);
                     if(o instanceof byte[]) {
                         o = new BytesWritable((byte[]) o);
+                    } else if(o instanceof BigInteger) {
+                        o = ((BigInteger) o).longValue();
                     }
-                    value.tuple.add((Comparable) o);
+                    try {
+                        value.tuple.add(o);
+                    } catch(Throwable t) {
+                        LOG.info("WTF: " + o.toString() + o.getClass().toString());
+                        throw new RuntimeException(t);
+                    } 
                 }
                 pos++;
             } catch (SQLException exception) {
