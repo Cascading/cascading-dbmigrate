@@ -5,16 +5,18 @@ Licensed under the Apache License, Version 2.0 (the "License"); you may not use 
 */
 package cascading.dbmigrate.hadoop;
 
-import cascading.tuple.Tuple;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import org.apache.hadoop.io.BytesWritable;
 import org.apache.hadoop.io.LongWritable;
 import org.apache.hadoop.io.WritableUtils;
 import org.apache.hadoop.mapred.InputFormat;
@@ -22,11 +24,10 @@ import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
-import org.apache.hadoop.io.BytesWritable;
-import java.math.BigInteger;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import cascading.tuple.Tuple;
 
 public class DBInputFormat implements InputFormat<LongWritable, TupleWrapper> {
 
@@ -61,14 +62,14 @@ public class DBInputFormat implements InputFormat<LongWritable, TupleWrapper> {
                 throw new RuntimeException(e);
             }
         }
-        
+
         public static <T> String join(T[] arr, String sep) {
             String ret = "";
             for(int i=0; i < arr.length; i++) {
                 ret = ret + arr[i];
                 if(i < arr.length-1) {
                     ret = ret + sep;
-                }            
+                }
             }
             return ret;
         }
@@ -86,6 +87,7 @@ public class DBInputFormat implements InputFormat<LongWritable, TupleWrapper> {
             return query.toString();
         }
 
+        @Override
         public void close() throws IOException {
             try {
                 results.close();
@@ -97,26 +99,31 @@ public class DBInputFormat implements InputFormat<LongWritable, TupleWrapper> {
         }
 
         /** {@inheritDoc} */
+        @Override
         public LongWritable createKey() {
             return new LongWritable();
         }
 
         /** {@inheritDoc} */
+        @Override
         public TupleWrapper createValue() {
             return new TupleWrapper();
         }
 
         /** {@inheritDoc} */
+        @Override
         public long getPos() throws IOException {
             return pos;
         }
 
         /** {@inheritDoc} */
+        @Override
         public float getProgress() throws IOException {
-            return (float) (pos / (float) split.getLength());
+            return (pos / (float) split.getLength());
         }
 
         /** {@inheritDoc} */
+        @Override
         public boolean next(LongWritable key, TupleWrapper value) throws IOException {
             try {
                 if (!results.next()) {
@@ -132,13 +139,15 @@ public class DBInputFormat implements InputFormat<LongWritable, TupleWrapper> {
                         o = new BytesWritable((byte[]) o);
                     } else if(o instanceof BigInteger) {
                         o = ((BigInteger) o).longValue();
+                    } else if (o instanceof BigDecimal) {
+                        o = ((BigDecimal) o).doubleValue();
                     }
                     try {
                         value.tuple.add(o);
                     } catch(Throwable t) {
                         LOG.info("WTF: " + o.toString() + o.getClass().toString());
                         throw new RuntimeException(t);
-                    } 
+                    }
                 }
                 pos++;
             } catch (SQLException exception) {
@@ -158,38 +167,45 @@ public class DBInputFormat implements InputFormat<LongWritable, TupleWrapper> {
         }
 
         public DBInputSplit(long start, long end, String primaryKeyColumn) {
-            this.startId = start;
-            this.endId = end;
+            startId = start;
+            endId = end;
             this.primaryKeyColumn = primaryKeyColumn;
         }
 
+        @Override
         public String[] getLocations() throws IOException {
             return new String[]{};
         }
 
+        @Override
         public long getLength() throws IOException {
             return endId - startId;
         }
 
+        @Override
         public void readFields(DataInput input) throws IOException {
             startId = input.readLong();
             endId = input.readLong();
             primaryKeyColumn = WritableUtils.readString(input);
         }
 
+        @Override
         public void write(DataOutput output) throws IOException {
             output.writeLong(startId);
             output.writeLong(endId);
             WritableUtils.writeString(output, primaryKeyColumn);
         }
-    }   
+    }
 
+    @Override
     public RecordReader<LongWritable, TupleWrapper> getRecordReader(InputSplit split, JobConf job, Reporter reporter) throws IOException {
         return new DBRecordReader((DBInputSplit) split, job);
     }
 
     private long getMaxId(DBConfiguration conf, Connection conn, String tableName, String col) {
-        if(conf.getMaxId()!=null) return conf.getMaxId();
+        if(conf.getMaxId()!=null) {
+            return conf.getMaxId();
+        }
         try {
             PreparedStatement s = conn.prepareStatement("SELECT MAX(" + col + ") FROM " + tableName);
             ResultSet rs = s.executeQuery();
@@ -204,7 +220,9 @@ public class DBInputFormat implements InputFormat<LongWritable, TupleWrapper> {
     }
 
     private long getMinId(DBConfiguration conf, Connection conn, String tableName, String col ) {
-        if(conf.getMinId()!=null) return conf.getMinId();
+        if(conf.getMinId()!=null) {
+            return conf.getMinId();
+        }
         try {
             PreparedStatement s = conn.prepareStatement("SELECT MIN(" + col + ") FROM " + tableName);
             ResultSet rs = s.executeQuery();
@@ -218,6 +236,7 @@ public class DBInputFormat implements InputFormat<LongWritable, TupleWrapper> {
         }
     }
 
+    @Override
     public InputSplit[] getSplits(JobConf job, int ignored) throws IOException {
         try {
             DBConfiguration conf = new DBConfiguration(job);
@@ -226,8 +245,8 @@ public class DBInputFormat implements InputFormat<LongWritable, TupleWrapper> {
             String primarykeycolumn = conf.getPrimaryKeyColumn();
             long maxId = getMaxId(conf, conn, conf.getInputTableName(), conf.getPrimaryKeyColumn());
             long minId = getMinId(conf, conn, conf.getInputTableName(), conf.getPrimaryKeyColumn());
-            long chunkSize = ((maxId-minId+1) / chunks) + 1;
-            chunks = ((int) ((maxId-minId+1) / chunkSize)) + 1;
+            long chunkSize = (maxId-minId+1) / chunks + 1;
+            chunks = (int) ((maxId-minId+1) / chunkSize) + 1;
             InputSplit[] ret = new InputSplit[chunks];
 
             long currId = minId;
@@ -249,11 +268,15 @@ public class DBInputFormat implements InputFormat<LongWritable, TupleWrapper> {
 
         DBConfiguration dbConf = new DBConfiguration(job);
         dbConf.configureDB(databaseDriver, dburl, username, pwd);
-        if(minId!=null) dbConf.setMinId(minId.longValue());
-        if(maxId!=null) dbConf.setMaxId(maxId.longValue());
+        if(minId!=null) {
+            dbConf.setMinId(minId.longValue());
+        }
+        if(maxId!=null) {
+            dbConf.setMaxId(maxId.longValue());
+        }
         dbConf.setInputTableName(tableName);
         dbConf.setInputColumnNames(columnNames);
         dbConf.setPrimaryKeyColumn(pkColumn);
         dbConf.setNumChunks(numChunks);
-    } 
+    }
 }
