@@ -8,8 +8,6 @@ package cascading.dbmigrate.hadoop;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -119,7 +117,7 @@ public class DBInputFormat implements InputFormat<LongWritable, TupleWrapper> {
         /** {@inheritDoc} */
         @Override
         public float getProgress() throws IOException {
-            return (pos / (float) split.getLength());
+            return pos / (float) split.getLength();
         }
 
         /** {@inheritDoc} */
@@ -137,10 +135,6 @@ public class DBInputFormat implements InputFormat<LongWritable, TupleWrapper> {
                     Object o = results.getObject(i+1);
                     if(o instanceof byte[]) {
                         o = new BytesWritable((byte[]) o);
-                    } else if(o instanceof BigInteger) {
-                        o = ((BigInteger) o).longValue();
-                    } else if (o instanceof BigDecimal) {
-                        o = ((BigDecimal) o).doubleValue();
                     }
                     try {
                         value.tuple.add(o);
