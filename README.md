@@ -27,6 +27,25 @@ DBMigrateTap's constructor has the following signature:
 The tap will emit tuples containing one field for each column read, the field
 names being the column names.
 
+Examples
+--------
+
+### Cascalog
+
+    (defn db-tap [table]
+      (cascading.dbmigrate.tap.DBMigrateTap.
+        1
+        "com.mysql.jdbc.Driver"
+        "jdbc:mysql://localhost:3306/mydb"
+        "root"
+        ""
+        table
+        "id"
+        (into-array ["id" "name"])
+      ))
+
+    (<- [?id ?name] ((db-tap "users") ?id ?name))
+
 Building
 --------
 
