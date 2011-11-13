@@ -1,0 +1,47 @@
+cascading-dbmigrate
+===================
+
+cascading-dbmigrate makes it easy to run Cascading flows on sql tables with a
+primary key of an int or a long. We use it at BackType to migrate data from our
+databases to HDFS.
+
+Usage
+-----
+
+To read data from a database in a Cascading flow, use DBMigrateTap.
+DBMigrateTap's constructor has the following signature:
+
+    DBMigrateTap(
+      int numChunks,       // The number of splits to create of the database.
+                           // This will correspond to the number of mappers
+                           // created to read the database.
+      String dbDriver,     // For example, "com.mysql.jdbc.Driver"
+      String dbUrl,        // The connection url to connect to your database
+      String username,     // Username to connect to your database
+      String pwd,          // Password to connect to your database
+      String tableName,    // The table to read during the flow
+      String pkColumn,     // The name of the primary key column of the table
+      String[] columnNames // The names of the columns you want to read into
+                           // the flow
+    )
+
+The tap will emit tuples containing one field for each column read, the field
+names being the column names.
+
+Building
+--------
+
+To build cascading-dbmigrate, follow these instructions:
+
+1. Set `HADOOP_HOME` environment variable to the root directory of your hadoop
+   distribution
+2. Set `CASCADING_HOME` environment variable to the root directory of your
+   cascading distribution
+3. `ant jar`
+
+This will produce a single jar called `cascading_dbmigrate.jar` in the `build/`
+directory.
+
+
+Thanks to Chris Wensel for his help in developing this project.
+
