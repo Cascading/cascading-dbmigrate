@@ -12,16 +12,17 @@ To read data from a database in a Cascading flow, use DBMigrateTap.
 DBMigrateTap's constructor has the following signature:
 
     DBMigrateTap(
-      int numChunks,       // The number of splits to create of the database.
-                           // This will correspond to the number of mappers
-                           // created to read the database.
-      String dbDriver,     // For example, "com.mysql.jdbc.Driver"
-      String dbUrl,        // For example, "jdbc:mysql://localhost:3306/mydb"
-      String username,     // Username to connect to your database.
-      String pwd,          // Password to connect to your database.
-      String tableName,    // The table to read during the flow.
-      String pkColumn,     // The name of the primary key column of the table.
-      String[] columnNames // The names of the columns to read into the flow.
+      int numChunks,        // The number of splits to create of the database.
+                            // This will correspond to the number of mappers
+                            // created to read the database.
+      String dbDriver,      // For example, "com.mysql.jdbc.Driver"
+      String dbUrl,         // For example, "jdbc:mysql://localhost:3306/mydb"
+      String username,      // Username to connect to your database.
+      String pwd,           // Password to connect to your database.
+      String tableName,     // The table to read during the flow.
+      String pkColumn,      // The name of the primary key column of the table.
+      String[] columnNames, // The names of the columns to read into the flow.
+      Options ops           // Optional, can provide min/max values to read.
     )
 
 The tap will emit tuples containing one field for each column read, the field
@@ -31,6 +32,13 @@ Examples
 --------
 
 ### Cascalog
+
+    (defn db-range [min max]
+      (let [opts (new cascading.dbmigrate.tap.DBMigrateTap$Options)]
+        (set! (. opts :minId) min))
+        (set! (. opts :maxId) max))
+        opts
+      ))
 
     (defn db-tap [table]
       (cascading.dbmigrate.tap.DBMigrateTap.
@@ -42,9 +50,10 @@ Examples
         table
         "id"
         (into-array ["id" "name"])
+        (db-range 1 100) ; Only load first 100 records
       ))
 
-    (<- [?id ?name] ((db-tap "users") ?id ?name))
+    (?<- (stdout) [?id ?name] ((db-tap "users") ?id ?name))
 
 Building
 --------
