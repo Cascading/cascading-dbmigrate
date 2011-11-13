@@ -61,9 +61,9 @@ Building
 To build cascading-dbmigrate, follow these instructions:
 
 1. Set `HADOOP_HOME` environment variable to the root directory of your hadoop
-   distribution
+   distribution.
 2. Set `CASCADING_HOME` environment variable to the root directory of your
-   cascading distribution
+   cascading distribution.
 3. `ant jar`
 
 This will produce a single jar called `cascading_dbmigrate.jar` in the `build/`
