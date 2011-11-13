@@ -16,13 +16,12 @@ DBMigrateTap's constructor has the following signature:
                            // This will correspond to the number of mappers
                            // created to read the database.
       String dbDriver,     // For example, "com.mysql.jdbc.Driver"
-      String dbUrl,        // The connection url to connect to your database
-      String username,     // Username to connect to your database
-      String pwd,          // Password to connect to your database
-      String tableName,    // The table to read during the flow
-      String pkColumn,     // The name of the primary key column of the table
-      String[] columnNames // The names of the columns you want to read into
-                           // the flow
+      String dbUrl,        // For example, "jdbc:mysql://localhost:3306/mydb"
+      String username,     // Username to connect to your database.
+      String pwd,          // Password to connect to your database.
+      String tableName,    // The table to read during the flow.
+      String pkColumn,     // The name of the primary key column of the table.
+      String[] columnNames // The names of the columns to read into the flow.
     )
 
 The tap will emit tuples containing one field for each column read, the field
