@@ -1,10 +1,11 @@
-(defproject backtype/cascading-dbmigrate "1.0.2"
+(defproject backtype/cascading-dbmigrate "1.1.0"
+  :source-path "src/clj"
   :java-source-path "src/jvm"
-  :java-fork "true"
-  :javac-debug "true"
-  :dependencies [
-[cascading/cascading-core "1.2-wip-63" :exclusions [org.codehaus.janino/janino]]
-                 ]
+  :javac-options {:debug "true" :fork "true"}
   :repositories {"conjars" "http://conjars.org/repo/"}
-  :dev-dependencies [[org.apache.hadoop/hadoop-core "0.20.2-dev"]
-                    ])
+  :dependencies [[cascading/cascading-core "1.2.4"
+                  :exclusions [org.codehaus.janino/janino
+                               thirdparty/jgrapht-jdk1.6
+                               riffle/riffle]]
+                 [thirdparty/jgrapht-jdk1.6 "0.8.1"]]
+  :dev-dependencies [[org.apache.hadoop/hadoop-core "0.20.2-dev"]])

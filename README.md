@@ -5,6 +5,8 @@ cascading-dbmigrate makes it easy to run Cascading flows on sql tables with a
 primary key of an int or a long. We use it at BackType to migrate data from our
 databases to HDFS.
 
+The current version of Cascading-dbmigrate is `1.1.0`.
+
 Usage
 -----
 
@@ -33,37 +35,38 @@ Examples
 
 ### Cascalog
 
-    (defn db-range [min max]
-      (let [opts (new cascading.dbmigrate.tap.DBMigrateTap$Options)]
-        (set! (. opts :minId) min))
-        (set! (. opts :maxId) max))
-        opts
-      ))
+```clojure
+ (defn db-range [min max]
+   (let [opts (new cascading.dbmigrate.tap.DBMigrateTap$Options)]
+     (set! (. opts :minId) min))
+     (set! (. opts :maxId) max))
+     opts))
 
-    (defn db-tap [table]
-      (cascading.dbmigrate.tap.DBMigrateTap.
-        1
-        "com.mysql.jdbc.Driver"
-        "jdbc:mysql://localhost:3306/mydb"
-        "root"
-        ""
-        table
-        "id"
-        (into-array ["id" "name"])
-        (db-range 1 100) ; Only load first 100 records
-      ))
+ (defn db-tap [table]
+   (cascading.dbmigrate.tap.DBMigrateTap.
+     1
+     "com.mysql.jdbc.Driver"
+     "jdbc:mysql://localhost:3306/mydb"
+     "root"
+     ""
+     table
+     "id"
+     (into-array ["id" "name"])
+     (db-range 1 100))) ;; Only load first 100 records
 
-    (?<- (stdout) [?id ?name] ((db-tap "users") ?id ?name))
+
+ (?<- (stdout)
+      [?id ?name]
+      ((db-tap "users") ?id ?name))
+```
 
 Building
 --------
 
 To build cascading-dbmigrate, follow these instructions:
 
-1. Set `HADOOP_HOME` environment variable to the root directory of your hadoop
-   distribution.
-2. Set `CASCADING_HOME` environment variable to the root directory of your
-   cascading distribution.
+1. Set `HADOOP_HOME` environment variable to the root directory of your hadoop distribution.
+2. Set `CASCADING_HOME` environment variable to the root directory of your cascading distribution.
 3. `ant jar`
 
 This will produce a single jar called `cascading_dbmigrate.jar` in the `build/`

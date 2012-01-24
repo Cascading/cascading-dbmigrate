@@ -1,33 +1,24 @@
 /**
-Copyright 2010 BackType
+ Copyright 2010 BackType
 
-Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
-*/
+ Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+ */
 package cascading.dbmigrate.hadoop;
+
+import cascading.tuple.Tuple;
+import org.apache.hadoop.io.BytesWritable;
+import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.WritableUtils;
+import org.apache.hadoop.mapred.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
-
-import org.apache.hadoop.io.BytesWritable;
-import org.apache.hadoop.io.LongWritable;
-import org.apache.hadoop.io.WritableUtils;
-import org.apache.hadoop.mapred.InputFormat;
-import org.apache.hadoop.mapred.InputSplit;
-import org.apache.hadoop.mapred.JobConf;
-import org.apache.hadoop.mapred.RecordReader;
-import org.apache.hadoop.mapred.Reporter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import cascading.tuple.Tuple;
+import java.sql.*;
 
 public class DBInputFormat implements InputFormat<LongWritable, TupleWrapper> {
 
@@ -47,7 +38,8 @@ public class DBInputFormat implements InputFormat<LongWritable, TupleWrapper> {
                 DBConfiguration conf = new DBConfiguration(job);
                 connection = conf.getConnection();
 
-                statement = connection.createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+                statement = connection
+                    .createStatement(ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
 
                 //statement.setFetchSize(Integer.MIN_VALUE);
                 String query = getSelectQuery(conf, split);
@@ -58,16 +50,16 @@ public class DBInputFormat implements InputFormat<LongWritable, TupleWrapper> {
                     LOG.error("unable to execute select query: " + query, exception);
                     throw new IOException("unable to execute select query: " + query, exception);
                 }
-            } catch(SQLException e) {
+            } catch (SQLException e) {
                 throw new RuntimeException(e);
             }
         }
 
         public static <T> String join(T[] arr, String sep) {
             String ret = "";
-            for(int i=0; i < arr.length; i++) {
+            for (int i = 0; i < arr.length; i++) {
                 ret = ret + arr[i];
-                if(i < arr.length-1) {
+                if (i < arr.length - 1) {
                     ret = ret + sep;
                 }
             }
@@ -87,7 +79,6 @@ public class DBInputFormat implements InputFormat<LongWritable, TupleWrapper> {
             return query.toString();
         }
 
-        @Override
         public void close() throws IOException {
             try {
                 results.close();
@@ -99,31 +90,26 @@ public class DBInputFormat implements InputFormat<LongWritable, TupleWrapper> {
         }
 
         /** {@inheritDoc} */
-        @Override
         public LongWritable createKey() {
             return new LongWritable();
         }
 
         /** {@inheritDoc} */
-        @Override
         public TupleWrapper createValue() {
             return new TupleWrapper();
         }
 
         /** {@inheritDoc} */
-        @Override
         public long getPos() throws IOException {
             return pos;
         }
 
         /** {@inheritDoc} */
-        @Override
         public float getProgress() throws IOException {
             return (pos / (float) split.getLength());
         }
 
         /** {@inheritDoc} */
-        @Override
         public boolean next(LongWritable key, TupleWrapper value) throws IOException {
             try {
                 if (!results.next()) {
@@ -134,17 +120,17 @@ public class DBInputFormat implements InputFormat<LongWritable, TupleWrapper> {
                 value.tuple = new Tuple();
 
                 for (int i = 0; i < results.getMetaData().getColumnCount(); i++) {
-                    Object o = results.getObject(i+1);
-                    if(o instanceof byte[]) {
+                    Object o = results.getObject(i + 1);
+                    if (o instanceof byte[]) {
                         o = new BytesWritable((byte[]) o);
-                    } else if(o instanceof BigInteger) {
+                    } else if (o instanceof BigInteger) {
                         o = ((BigInteger) o).longValue();
                     } else if (o instanceof BigDecimal) {
                         o = ((BigDecimal) o).doubleValue();
                     }
                     try {
                         value.tuple.add(o);
-                    } catch(Throwable t) {
+                    } catch (Throwable t) {
                         LOG.info("WTF: " + o.toString() + o.getClass().toString());
                         throw new RuntimeException(t);
                     }
@@ -172,24 +158,20 @@ public class DBInputFormat implements InputFormat<LongWritable, TupleWrapper> {
             this.primaryKeyColumn = primaryKeyColumn;
         }
 
-        @Override
         public String[] getLocations() throws IOException {
             return new String[]{};
         }
 
-        @Override
         public long getLength() throws IOException {
             return endId - startId;
         }
 
-        @Override
         public void readFields(DataInput input) throws IOException {
             startId = input.readLong();
             endId = input.readLong();
             primaryKeyColumn = WritableUtils.readString(input);
         }
 
-        @Override
         public void write(DataOutput output) throws IOException {
             output.writeLong(startId);
             output.writeLong(endId);
@@ -197,46 +179,47 @@ public class DBInputFormat implements InputFormat<LongWritable, TupleWrapper> {
         }
     }
 
-    @Override
-    public RecordReader<LongWritable, TupleWrapper> getRecordReader(InputSplit split, JobConf job, Reporter reporter) throws IOException {
+    public RecordReader<LongWritable, TupleWrapper> getRecordReader(InputSplit split, JobConf job,
+        Reporter reporter) throws IOException {
         return new DBRecordReader((DBInputSplit) split, job);
     }
 
     private long getMaxId(DBConfiguration conf, Connection conn, String tableName, String col) {
-        if(conf.getMaxId()!=null) {
+        if (conf.getMaxId() != null) {
             return conf.getMaxId();
         }
         try {
-            PreparedStatement s = conn.prepareStatement("SELECT MAX(" + col + ") FROM " + tableName);
+            PreparedStatement s =
+                conn.prepareStatement("SELECT MAX(" + col + ") FROM " + tableName);
             ResultSet rs = s.executeQuery();
             rs.next();
             long ret = rs.getLong(1);
             rs.close();
             s.close();
             return ret;
-        } catch(SQLException e) {
+        } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
 
-    private long getMinId(DBConfiguration conf, Connection conn, String tableName, String col ) {
-        if(conf.getMinId()!=null) {
+    private long getMinId(DBConfiguration conf, Connection conn, String tableName, String col) {
+        if (conf.getMinId() != null) {
             return conf.getMinId();
         }
         try {
-            PreparedStatement s = conn.prepareStatement("SELECT MIN(" + col + ") FROM " + tableName);
+            PreparedStatement s =
+                conn.prepareStatement("SELECT MIN(" + col + ") FROM " + tableName);
             ResultSet rs = s.executeQuery();
             rs.next();
             long ret = rs.getLong(1);
             rs.close();
             s.close();
             return ret;
-        } catch(SQLException e) {
+        } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
 
-    @Override
     public InputSplit[] getSplits(JobConf job, int ignored) throws IOException {
         try {
             DBConfiguration conf = new DBConfiguration(job);
@@ -245,33 +228,35 @@ public class DBInputFormat implements InputFormat<LongWritable, TupleWrapper> {
             String primarykeycolumn = conf.getPrimaryKeyColumn();
             long maxId = getMaxId(conf, conn, conf.getInputTableName(), conf.getPrimaryKeyColumn());
             long minId = getMinId(conf, conn, conf.getInputTableName(), conf.getPrimaryKeyColumn());
-            long chunkSize = (maxId-minId+1) / chunks + 1;
-            chunks = (int) ((maxId-minId+1) / chunkSize) + 1;
+            long chunkSize = (maxId - minId + 1) / chunks + 1;
+            chunks = (int) ((maxId - minId + 1) / chunkSize) + 1;
             InputSplit[] ret = new InputSplit[chunks];
 
             long currId = minId;
-            for(int i=0; i<chunks; i++) {
+            for (int i = 0; i < chunks; i++) {
                 long start = currId;
-                currId+=chunkSize;
-                ret[i] = new DBInputSplit(start, Math.min(currId, maxId+1), primarykeycolumn);
+                currId += chunkSize;
+                ret[i] = new DBInputSplit(start, Math.min(currId, maxId + 1), primarykeycolumn);
             }
 
             conn.close();
             return ret;
-        } catch(SQLException e) {
+        } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
 
-    public static void setInput(JobConf job, int numChunks, String databaseDriver, String username, String pwd, String dburl, String tableName, String pkColumn, Long minId, Long maxId, String... columnNames) {
+    public static void setInput(JobConf job, int numChunks, String databaseDriver, String username,
+        String pwd, String dburl, String tableName, String pkColumn, Long minId, Long maxId,
+        String... columnNames) {
         job.setInputFormat(DBInputFormat.class);
 
         DBConfiguration dbConf = new DBConfiguration(job);
         dbConf.configureDB(databaseDriver, dburl, username, pwd);
-        if(minId!=null) {
+        if (minId != null) {
             dbConf.setMinId(minId.longValue());
         }
-        if(maxId!=null) {
+        if (maxId != null) {
             dbConf.setMaxId(maxId.longValue());
         }
         dbConf.setInputTableName(tableName);

@@ -1,17 +1,17 @@
 /**
-Copyright 2010 BackType
+ Copyright 2010 BackType
 
-Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
-*/
+ Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License. You may obtain a copy of the License at http://www.apache.org/licenses/LICENSE-2.0 Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the specific language governing permissions and limitations under the License.
+ */
 
 package cascading.dbmigrate.hadoop;
+
+import org.apache.hadoop.mapred.JobConf;
 
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-
-import org.apache.hadoop.mapred.JobConf;
 
 public class DBConfiguration {
 
@@ -42,7 +42,7 @@ public class DBConfiguration {
     public void configureDB(String driverClass, String dbUrl) {
         configureDB(driverClass, dbUrl, null, null);
     }
-    
+
     public JobConf job;
 
     public DBConfiguration(JobConf job) {
@@ -61,7 +61,9 @@ public class DBConfiguration {
             if (job.get(DBConfiguration.USERNAME_PROPERTY) == null) {
                 ret = DriverManager.getConnection(job.get(DBConfiguration.URL_PROPERTY));
             } else {
-                ret = DriverManager.getConnection(job.get(DBConfiguration.URL_PROPERTY), job.get(DBConfiguration.USERNAME_PROPERTY), job.get(DBConfiguration.PASSWORD_PROPERTY));
+                ret = DriverManager.getConnection(job.get(DBConfiguration.URL_PROPERTY), job
+                    .get(DBConfiguration.USERNAME_PROPERTY), job
+                    .get(DBConfiguration.PASSWORD_PROPERTY));
             }
             return ret;
         } catch (SQLException exception) {
@@ -100,22 +102,22 @@ public class DBConfiguration {
     public int getNumChunks() {
         return job.getInt(NUM_CHUNKS, 10);
     }
-    
+
     public void setMinId(long id) {
         job.setLong(MIN_ID, id);
     }
-    
+
     public Long getMinId() {
-        if(job.get(MIN_ID)==null) return null;
+        if (job.get(MIN_ID) == null) { return null; }
         return job.getLong(MIN_ID, -1);
     }
-    
+
     public void setMaxId(long id) {
         job.setLong(MAX_ID, id);
     }
-    
+
     public Long getMaxId() {
-        if(job.get(MAX_ID)==null) return null;
+        if (job.get(MAX_ID) == null) { return null; }
         return job.getLong(MAX_ID, -1);
     }
 }
