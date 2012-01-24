@@ -1,4 +1,4 @@
-(defproject backtype/cascading-dbmigrate "1.1.0"
+(defproject backtype/cascading-dbmigrate "1.1.1-SNAPSHOT"
   :source-path "src/clj"
   :java-source-path "src/jvm"
   :javac-options {:debug "true" :fork "true"}
