@@ -5,7 +5,7 @@ cascading-dbmigrate makes it easy to run Cascading flows on sql tables with a
 primary key of an int or a long. We use it at BackType to migrate data from our
 databases to HDFS.
 
-The current version of Cascading-dbmigrate is `1.1.0`.
+Cascading-DBMigrate is available [on Clojars](http://clojars.org/backtype/cascading-dbmigrate).
 
 Usage
 -----
