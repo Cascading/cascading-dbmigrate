@@ -7,29 +7,35 @@ package cascading.dbmigrate.tap;
 
 import cascading.dbmigrate.hadoop.DBInputFormat;
 import cascading.dbmigrate.hadoop.TupleWrapper;
+import cascading.flow.hadoop.HadoopFlowProcess;
 import cascading.scheme.Scheme;
+import cascading.scheme.SinkCall;
+import cascading.scheme.SourceCall;
 import cascading.tap.Tap;
-import cascading.tap.hadoop.TapIterator;
+import cascading.tap.hadoop.Hfs;
+import cascading.tap.hadoop.MultiRecordReaderIterator;
+import cascading.tap.hadoop.RecordReaderIterator;
 import cascading.tuple.Fields;
-import cascading.tuple.Tuple;
-import cascading.tuple.TupleEntry;
 import cascading.tuple.TupleEntryCollector;
 import cascading.tuple.TupleEntryIterator;
-import java.io.IOException;
+import cascading.tuple.TupleEntrySchemeIterator;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.mapred.FileInputFormat;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputCollector;
+import org.apache.hadoop.mapred.RecordReader;
+
+import java.io.IOException;
 import java.io.Serializable;
 
 
-public class DBMigrateTap extends Tap {
+public class DBMigrateTap extends Hfs {
     public static class Options implements Serializable {
         public Long minId = null;
         public Long maxId = null;
     }
     
-    public class DBMigrateScheme extends Scheme {
+    public class DBMigrateScheme extends Scheme<HadoopFlowProcess, JobConf, RecordReader, OutputCollector, Object[], Object[]> {
         String dbDriver;
         String dbUrl;
         String username;
@@ -54,25 +60,42 @@ public class DBMigrateTap extends Tap {
         }
 
         @Override
-        public void sourceInit(Tap tap, JobConf jc) throws IOException {
+        public void sourceConfInit(HadoopFlowProcess flowProcess, Tap tap, JobConf conf) {
             // a hack for MultiInputFormat to see that there is a child format
-            FileInputFormat.setInputPaths( jc, getPath() );
-            
-            DBInputFormat.setInput(jc, numChunks, dbDriver, username, pwd, dbUrl, tableName, pkColumn, options.minId, options.maxId, columnNames);
+            FileInputFormat.setInputPaths( conf, getPath() );
+            DBInputFormat.setInput(conf, numChunks, dbDriver, username, pwd, dbUrl, tableName, pkColumn, options.minId, options.maxId, columnNames);
         }
 
         @Override
-        public void sinkInit(Tap tap, JobConf jc) throws IOException {
+        public void sinkConfInit(HadoopFlowProcess flowProcess, Tap tap, JobConf conf) {
             throw new UnsupportedOperationException("Cannot be used as a sink");
         }
 
-        @Override
-        public Tuple source(Object key, Object val) {
-            return ((TupleWrapper) val).tuple;
+        @Override public void sourcePrepare(HadoopFlowProcess flowProcess,
+            SourceCall<Object[], RecordReader> sourceCall) {
+
+            sourceCall.setContext(new Object[2]);
+
+            sourceCall.getContext()[0] = sourceCall.getInput().createKey();
+            sourceCall.getContext()[1] = sourceCall.getInput().createValue();
         }
 
         @Override
-        public void sink(TupleEntry te, OutputCollector oc) throws IOException {
+        public boolean source(HadoopFlowProcess flowProcess, SourceCall<Object[], RecordReader> sourceCall) throws IOException {
+            Object key = sourceCall.getContext()[ 0 ];
+            TupleWrapper val = (TupleWrapper) sourceCall.getContext()[ 1 ];
+
+            boolean result = sourceCall.getInput().next( key, val );
+
+            if( !result )
+                return false;
+
+            sourceCall.getIncomingEntry().setTuple(val.tuple);
+            return true;
+        }
+
+        @Override
+        public void sink(HadoopFlowProcess flowProcess, SinkCall<Object[], OutputCollector> outputCollectorSinkCall) throws IOException {
             throw new UnsupportedOperationException("Cannot be used as a sink.");
         }
     }
@@ -94,32 +117,38 @@ public class DBMigrateTap extends Tap {
     }
 
     @Override
-    public TupleEntryIterator openForRead(JobConf conf) throws IOException {
-        return new TupleEntryIterator(getSourceFields(), new TapIterator(this, conf));
+    public TupleEntryIterator openForRead( HadoopFlowProcess flowProcess, RecordReader input ) throws IOException {
+        if (input != null)
+            return new TupleEntrySchemeIterator( flowProcess, getScheme(), new RecordReaderIterator( input ) );
+
+        JobConf conf = flowProcess.getJobConf();
+
+        return new TupleEntrySchemeIterator(flowProcess, getScheme(),
+            new MultiRecordReaderIterator(flowProcess, this, conf), "DBMigrateTap: " + getIdentifier());
     }
 
     @Override
-    public TupleEntryCollector openForWrite(JobConf jc) throws IOException {
+    public TupleEntryCollector openForWrite(HadoopFlowProcess flowProcess, OutputCollector output) throws IOException {
         throw new UnsupportedOperationException("Not supported.");
     }
 
     @Override
-    public boolean makeDirs(JobConf jc) throws IOException {
+    public boolean createResource(JobConf jc) throws IOException {
         return true;
     }
 
     @Override
-    public boolean deletePath(JobConf jc) throws IOException {
+    public boolean deleteResource(JobConf jc) throws IOException {
         return false;
     }
 
     @Override
-    public boolean pathExists(JobConf jc) throws IOException {
+    public boolean resourceExists(JobConf jc) throws IOException {
         return true;
     }
 
     @Override
-    public long getPathModified(JobConf jc) throws IOException {
+    public long getModifiedTime(JobConf jc) throws IOException {
         return System.currentTimeMillis();
     }
 

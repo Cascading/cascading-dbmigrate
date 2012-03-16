@@ -3,9 +3,7 @@
   :java-source-path "src/jvm"
   :javac-options {:debug "true" :fork "true"}
   :repositories {"conjars" "http://conjars.org/repo/"}
-  :dependencies [[cascading/cascading-core "1.2.4"
+  :dependencies [[cascading/cascading-hadoop "2.0.0-wip-226"
                   :exclusions [org.codehaus.janino/janino
-                               thirdparty/jgrapht-jdk1.6
-                               riffle/riffle]]
-                 [thirdparty/jgrapht-jdk1.6 "0.8.1"]]
+                               org.apache.hadoop/hadoop-core]]]
   :dev-dependencies [[org.apache.hadoop/hadoop-core "0.20.2-dev"]])
