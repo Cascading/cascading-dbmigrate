@@ -21,14 +21,15 @@ import org.apache.hadoop.mapred.FileInputFormat;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputCollector;
 import java.io.Serializable;
-
+import java.util.Map;
 
 public class DBMigrateTap extends Tap {
     public static class Options implements Serializable {
         public Long minId = null;
         public Long maxId = null;
+        public Map<String,String> driverProps;
     }
-    
+
     public class DBMigrateScheme extends Scheme {
         String dbDriver;
         String dbUrl;
@@ -57,8 +58,8 @@ public class DBMigrateTap extends Tap {
         public void sourceInit(Tap tap, JobConf jc) throws IOException {
             // a hack for MultiInputFormat to see that there is a child format
             FileInputFormat.setInputPaths( jc, getPath() );
-            
-            DBInputFormat.setInput(jc, numChunks, dbDriver, username, pwd, dbUrl, tableName, pkColumn, options.minId, options.maxId, columnNames);
+
+            DBInputFormat.setInput(jc, numChunks, dbDriver, username, pwd, dbUrl, tableName, pkColumn, options.minId, options.maxId, options.driverProps, columnNames);
         }
 
         @Override

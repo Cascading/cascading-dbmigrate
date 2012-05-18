@@ -12,6 +12,9 @@ import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.Properties;
+import java.util.Map;
+import java.util.Iterator;
 
 public class DBConfiguration {
 
@@ -25,6 +28,7 @@ public class DBConfiguration {
     public static final String NUM_CHUNKS = "mapred.jdbc.num.chunks";
     public static final String MIN_ID = "dbmigrate.min.id";
     public static final String MAX_ID = "dbmigrate.max.id";
+    public static final String DRIVER_PROPERTIES = "dbmigrate.driver.";
 
     public void configureDB(String driverClass, String dbUrl, String userName, String passwd) {
         job.set(DRIVER_CLASS_PROPERTY, driverClass);
@@ -58,12 +62,11 @@ public class DBConfiguration {
         Connection ret;
 
         try {
-            if (job.get(DBConfiguration.USERNAME_PROPERTY) == null) {
-                ret = DriverManager.getConnection(job.get(DBConfiguration.URL_PROPERTY));
+            Properties props = this.getDriverProperties();
+            if (props != null) {
+                ret = DriverManager.getConnection(job.get(DBConfiguration.URL_PROPERTY), props);
             } else {
-                ret = DriverManager.getConnection(job.get(DBConfiguration.URL_PROPERTY), job
-                    .get(DBConfiguration.USERNAME_PROPERTY), job
-                    .get(DBConfiguration.PASSWORD_PROPERTY));
+                ret = DriverManager.getConnection(job.get(DBConfiguration.URL_PROPERTY));
             }
             return ret;
         } catch (SQLException exception) {
@@ -120,5 +123,48 @@ public class DBConfiguration {
         if (job.get(MAX_ID) == null) { return null; }
         return job.getLong(MAX_ID, -1);
     }
+
+    public void setDriverProperties(Map<String,String> props) {
+        Iterator<Map.Entry<String,String>> dpit = props.entrySet().iterator();
+        while (dpit.hasNext()) {
+            Map.Entry<String,String> prop = dpit.next();
+            this.addDriverProperty(prop.getKey(), prop.getValue());
+        }
+    }
+
+    public void addDriverProperty(String key, String value) {
+        job.set( DBConfiguration.DRIVER_PROPERTIES + key, value);
+    }
+
+    public Properties getDriverProperties() {
+        Properties props = null;
+        Iterator<Map.Entry<String,String>> jobit = job.iterator();
+        while (jobit.hasNext()) {
+            Map.Entry<String, String> entry = jobit.next();
+            if (entry.getKey().startsWith(DBConfiguration.DRIVER_PROPERTIES)) {
+                String propertyKey = entry.getKey().substring(DBConfiguration.DRIVER_PROPERTIES.length());
+
+                if (props == null)
+                    props = new Properties();
+
+                props.setProperty(propertyKey, entry.getValue());
+            }
+        }
+
+        String username = job.get(DBConfiguration.USERNAME_PROPERTY);
+        if (username != null) {
+            if (props == null)
+                props = new Properties();
+            props.setProperty("user", username);
+        }
+        String password = job.get(DBConfiguration.PASSWORD_PROPERTY);
+        if (password != null) {
+            if (props == null)
+                props = new Properties();
+            props.setProperty("password", password);
+        }
+        return props;
+    }
+
 }
 
