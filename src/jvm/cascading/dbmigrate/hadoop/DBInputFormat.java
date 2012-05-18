@@ -19,6 +19,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.sql.*;
+import java.util.Map;
 
 public class DBInputFormat implements InputFormat<LongWritable, TupleWrapper> {
 
@@ -248,6 +249,7 @@ public class DBInputFormat implements InputFormat<LongWritable, TupleWrapper> {
 
     public static void setInput(JobConf job, int numChunks, String databaseDriver, String username,
         String pwd, String dburl, String tableName, String pkColumn, Long minId, Long maxId,
+                                Map<String,String> driverProps,
         String... columnNames) {
         job.setInputFormat(DBInputFormat.class);
 
@@ -258,6 +260,9 @@ public class DBInputFormat implements InputFormat<LongWritable, TupleWrapper> {
         }
         if (maxId != null) {
             dbConf.setMaxId(maxId.longValue());
+        }
+        if (driverProps != null) {
+            dbConf.setDriverProperties(driverProps);
         }
         dbConf.setInputTableName(tableName);
         dbConf.setInputColumnNames(columnNames);
